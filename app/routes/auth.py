@@ -139,6 +139,8 @@ def callback():
     except Exception as e:
         flash(f'Error durante el login con Google: {str(e)}', 'danger')
         return redirect(url_for('auth.login'))
+    
+    return redirect(url_for('general.inicio'))
 
 @auth_bp.route('/registro', methods=['GET', 'POST'])
 def registro():
@@ -153,19 +155,24 @@ def registro():
 
         # Validaciones
         if not all([nombre, apellido, email, password, confirm_password]):
-            return jsonify({'Mensaje': 'Todos los campos son obligatorios'}), 400
+            flash('Todos los campos son obligatorios', 'danger')
+            return redirect(request.url)
 
         if not accept_terms:
-            return jsonify({'Mensaje': 'Debes aceptar los términos y condiciones'}), 400
+            flash('Debes aceptar terminos y condiciones', 'danger')
+            return redirect(request.url)
 
         if password != confirm_password:
-            return jsonify({'Mensaje': 'Las contraseñas no coinciden'}), 400
+            flash('Contrasenas no coinciden', 'danger')
+            return redirect(request.url)
 
         if len(password) < 8:
-            return jsonify({'Mensaje': 'La contraseña debe tener al menos 8 caracteres'}), 400
+            flash('Contrasena debe ser mayor de 8 caracteres', 'danger')
+            return redirect(request.url)
 
         if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            return jsonify({'Mensaje': 'Email no válido'}), 400
+            flash('Email no valido', 'danger')
+            return redirect(request.url)
 
         especialista_data_u = {
             "nombre": nombre,
@@ -281,8 +288,9 @@ def login():
 
                 session['access_token'] = datos_devueltos['access_token']
                 session['token_type'] = datos_devueltos['token_type']
-
-                flash('Inicio de sesión exitoso', 'success')
+                
+                
+                flash(f'Bienvenid@!', 'success')
                 return redirect(url_for('general.inicio'))
             else:
                 error_message = response.json().get('Mensaje', 'Correo incorrecto')

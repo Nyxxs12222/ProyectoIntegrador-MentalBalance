@@ -100,37 +100,31 @@ def agendar_cita():
         }
         return redirect(url_for('auth.login', next=url_for('citas.catalogo_citas')))
     
+    data = request.form
+    id_usuario = session['user_id']
+    id_especialista = data.get('id_especialista')
+    fecha = data.get('fecha')
+    hora = data.get('hora')
+    estado = "pendiente"
+
     try:
-        id_especialista = request.form['id_especialista']
-        fecha = datetime.strptime(request.form['fecha'], '%Y-%m-%d').date()
-        hora = request.form['hora']
-        user_id = session['user_id']
-
-        cur = mysql.connection.cursor()
-
-        cur.execute("""
-            SELECT id FROM CitasAgendadas
-            WHERE id_especialista = %s AND fecha = %s AND hora = %s
-            AND estado != 'cancelada'
-        """, (id_especialista, fecha, hora))
-        
-        if cur.fetchone():
-            flash('Este horario ya está ocupado', 'warning')
+        horarios_disponibles = generar_horarios_disponibles(id_especialista, fecha)
+        if hora not in horarios_disponibles:
+            flash('El horario seleccionado no está disponible.', 'danger')
             return redirect(url_for('citas.catalogo_citas'))
 
+        cur = mysql.connection.cursor()
         cur.execute("""
-            INSERT INTO CitasAgendadas 
-            (id_usuario, id_especialista, fecha, hora, estado)
-            VALUES (%s, %s, %s, %s, 'pendiente')
-        """, (user_id, id_especialista, fecha, hora))
-
+            INSERT INTO CitasAgendadas (id_usuario, id_especialista, fecha, hora, estado)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (id_usuario, id_especialista, fecha, hora, estado))
         mysql.connection.commit()
-        flash('¡Cita agendada con éxito!', 'success')
+        flash('Cita agendada exitosamente.', 'success')
         return redirect(url_for('citas.mis_citas'))
-    
+
     except Exception as e:
-        mysql.connection.rollback()
-        flash(f'Error al agendar la cita: {str(e)}', 'danger')
+        print(f"Error al agendar cita: {str(e)}")
+        flash('Hubo un error al agendar la cita.', 'danger')
         return redirect(url_for('citas.catalogo_citas'))
     finally:
         cur.close()
